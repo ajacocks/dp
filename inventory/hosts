@@ -1,0 +1,15 @@
+ansible_ssh_user=ec2-user
+ansible_become=yes
+
+[local_target]
+localhost  ansible_connection=local  ansible_python_interpreter='/usr/bin/env python'
+
+[tower_nodes]
+dp.tower.[0:0].redhatgov.io
+
+[nodes]
+dp.node.[0:-1].redhatgov.io
+
+[all_nodes]
+dp.tower.[0:0].redhatgov.io
+dp.node.[0:-1].redhatgov.io
