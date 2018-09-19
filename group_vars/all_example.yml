@@ -49,7 +49,7 @@ letsencrypt_email:                "someone@redhat.com"
 letsencrypt:                      false
 #-------------------------------------------------------------------------------
 # wetty                    |      password
-workshop_password:                "redhat!@#"
+workshop_password:                ""
 #-------------------------------------------------------------------------------
 
 ################################################################################
@@ -58,6 +58,7 @@ workshop_password:                "redhat!@#"
 # Dynamic Inventory 
 inventory_working_dir:            "{{ lookup('env','PWD') }}/inventory"
 # Ansible SSH Key Location |      SSH Key Vars
-ssh_key_path:                     "{{ deploy_working_dir }}/{{ workshop_prefix }}-tower"
-ansible_ssh_private_key_file:     "{{ deploy_working_dir }}/{{ workshop_prefix }}-tower"
+ssh_key_path:                     "{{ deploy_working_dir }}/{{ workshop_prefix }}-key"
+ansible_ssh_private_key_file:     "{{ ssh_key_path }}"
 system_user:                      "ec2-user"    # AWS
+username:                         "{{ ansible_env.USERNAME }}"
