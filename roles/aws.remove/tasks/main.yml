@@ -1,0 +1,66 @@
+---
+# tasks file for roles/aws.remove
+
+#===============================================================================
+#  Deprovisioning
+#===============================================================================
+- name: Remove RHEL instances
+  ec2:
+    aws_access_key: "{{ aws_access_key }}"
+    aws_secret_key: "{{ aws_secret_key }}"
+#    assign_public_ip: yes
+    key_name: "dp-{{ workshop_prefix }}-key"
+    group: "dp-{{ workshop_prefix }}-sg"
+    region: "{{ region }}"
+    instance_type: "{{ nodes.rhel.instance_type }}"
+    image: "{{ nodes.rhel.ami_id }}"
+    vpc_subnet_id: "{{ lookup('file', '{{ vpc_subnet_path }}' ) }}"
+    wait: true
+    instance_ids: "{{ lookup('file', '{{ vpc_rhel_ids_path }}' ) }}"
+    state: absent
+
+- name: Delete VPC route table
+  ec2_vpc_route_table:
+    aws_access_key: "{{ aws_access_key }}"
+    aws_secret_key: "{{ aws_secret_key }}"
+    region: "{{ region }}"
+    vpc_id: "{{ lookup('file', '{{ vpc_id_path }}' ) }}"
+    lookup: id
+    route_table_id: "{{ lookup('file', '{{ vpc_route_path }}' ) }}"
+    state: absent
+
+- name: Delete public subnet
+  ec2_vpc_subnet:
+    aws_access_key: "{{ aws_access_key }}"
+    aws_secret_key: "{{ aws_secret_key }}"
+    region: "{{ region }}"
+    cidr: "10.0.2.0/24"
+    vpc_id: "{{ lookup('file', '{{ vpc_id_path }}' ) }}"
+    state: absent
+
+- name: Delete RHEL security group
+  ec2_group:
+    name: "dp-{{ workshop_prefix }}-sg"
+    aws_access_key: "{{ aws_access_key }}"
+    aws_secret_key: "{{ aws_secret_key }}"
+    region: "{{ region }}"
+    state: absent
+
+- name: Delete VPC internet gateway
+  ec2_vpc_igw:
+    aws_access_key: "{{ aws_access_key }}"
+    aws_secret_key: "{{ aws_secret_key }}"
+    region: "{{ region }}"
+    vpc_id: "{{ lookup('file', '{{ vpc_id_path }}' ) }}"
+    state: absent
+
+- name: Delete VPC
+  ec2_vpc_net:
+    name: "dp-{{ workshop_prefix }}-vpc"
+    aws_access_key: "{{ aws_access_key }}"
+    aws_secret_key: "{{ aws_secret_key }}"
+    region: "{{ region }}"
+    cidr_block: "10.0.0.0/16"
+    state: absent
+
+...

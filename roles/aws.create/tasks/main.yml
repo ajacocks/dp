@@ -1,0 +1,191 @@
+---
+# tasks file for roles/aws.create
+#===============================================================================
+#  Provisioning
+#===============================================================================
+
+#---------------------------------------------------
+#  Ansible Hosts Creation
+#---------------------------------------------------
+- name: Template Ansible Hosts File
+  template: dest="{{ inventory_working_dir }}/hosts"  src=hosts.j2
+
+#---------------------------------------------------
+#  EC2 INI Creation
+#---------------------------------------------------
+- name: Template EC2 INI File
+  template: dest="{{ inventory_working_dir }}/ec2.ini"  src=ec2.ini.j2
+
+#---------------------------------------------------
+#  SSH Key
+#---------------------------------------------------
+- name: Check for existing key and remove
+  ec2_key:
+    name: "dp-{{ workshop_prefix }}-key"
+    aws_access_key: "{{ aws_access_key }}"
+    aws_secret_key: "{{ aws_secret_key }}"
+    region: "{{ region }}"
+    state: absent
+
+- name: Create EC2 keypair
+  ec2_key:
+    name: "dp-{{ workshop_prefix }}-key"
+    aws_access_key: "{{ aws_access_key }}"
+    aws_secret_key: "{{ aws_secret_key }}"
+    region: "{{ region }}"
+    state: present
+  register: ec2_key
+
+- debug:
+    var: ec2_key
+
+- name: Make temporary location to run deployment
+  file:
+    path: "{{ deploy_working_dir }}"
+    state: directory
+
+- name: Create ssh keypair
+  copy:
+    content: "{{ ec2_key.key.private_key }}\n"
+    dest: "{{ ssh_key_path }}"
+    mode: 0400
+
+#---------------------------------------------------
+#  Create AWS objects
+#---------------------------------------------------
+- name: Create VPC
+  ec2_vpc_net:
+    name: "dp-{{ workshop_prefix }}-vpc"
+    aws_access_key: "{{ aws_access_key }}"
+    aws_secret_key: "{{ aws_secret_key }}"
+    region: "{{ region }}"
+    cidr_block: "10.0.0.0/16"
+    dns_hostnames: yes
+    dns_support: yes
+    tags:
+      username: "{{ local_user }}"
+      workshop: "dp"
+      workshop_prefix: "{{ workshop_prefix }}"
+    state: present
+  register: ec2_vpc
+
+- debug:
+    var: ec2_vpc
+
+- name: Create VPC ID storage file
+  copy:
+    content: "{{ ec2_vpc.vpc.id }}\n"
+    dest: "{{ vpc_id_path }}"
+    mode: 0400
+
+- name: Create VPC internet gateway
+  ec2_vpc_igw:
+    aws_access_key: "{{ aws_access_key }}"
+    aws_secret_key: "{{ aws_secret_key }}"
+    region: "{{ region }}"
+    vpc_id: "{{ ec2_vpc.vpc.id }}"
+    state: present
+    tags:
+      username: "{{ local_user }}"
+      workshop: "dp"
+      workshop_prefix: "{{ workshop_prefix }}"
+  register: ec2_igw
+
+- name: Create RHEL security group
+  ec2_group:
+    name: "dp-{{ workshop_prefix }}-sg"
+    description: "SG for RHEL hosts"
+    aws_access_key: "{{ aws_access_key }}"
+    aws_secret_key: "{{ aws_secret_key }}"
+    region: "{{ region }}"
+    vpc_id: "{{ ec2_vpc.vpc.id }}"
+    rules:
+    - proto: "tcp"
+      ports: 22
+      cidr_ip: 0.0.0.0/0
+      rule_desc: "allow all on port 22 (SSH)"
+    - proto: tcp
+      ports: 8888
+      cidr_ip: 0.0.0.0/0
+      rule_desc: "allow all on port 8888 (wetty)"
+    tags:
+      username: "{{ local_user }}"
+      workshop: "dp"
+      workshop_prefix: "{{ workshop_prefix }}"
+    state: present
+
+- name: Create public subnet
+  ec2_vpc_subnet:
+    aws_access_key: "{{ aws_access_key }}"
+    aws_secret_key: "{{ aws_secret_key }}"
+    cidr: "10.0.2.0/24"
+    region: "{{ region }}"
+    vpc_id: "{{ ec2_vpc.vpc.id }}"
+    tags:
+      username: "{{ local_user }}"
+      workshop: "dp"
+      workshop_prefix: "{{ workshop_prefix }}"
+    wait: yes
+  register: ec2_subnet
+
+- name: Create VPC public subnet storage file
+  copy:
+    content: "{{ ec2_subnet.subnet.id }}\n"
+    dest: "{{ vpc_subnet_path }}"
+    mode: 0400
+
+- name: Create VPC route table
+  ec2_vpc_route_table:
+    aws_access_key: "{{ aws_access_key }}"
+    aws_secret_key: "{{ aws_secret_key }}"
+    region: "{{ region }}"
+    vpc_id: "{{ ec2_vpc.vpc.id }}"
+    subnets:
+      - "{{ ec2_subnet.subnet.id }}"
+    routes:
+      - dest: 0.0.0.0/0
+        gateway_id: "{{ ec2_igw.gateway_id }}"
+    lookup: tag
+    tags:
+      username: "{{ local_user }}"
+      workshop: "dp"
+      workshop_prefix: "{{ workshop_prefix }}"
+    state: present
+  register: ec2_route
+
+- name: Create VPC route table storage file
+  copy:
+    content: "{{ ec2_route.route_table.route_table_id }}\n"
+    dest: "{{ vpc_route_path }}"
+    mode: 0400
+
+- name: Create RHEL instances
+  ec2:
+    aws_access_key: "{{ aws_access_key }}"
+    aws_secret_key: "{{ aws_secret_key }}"
+    assign_public_ip: yes
+    key_name: "dp-{{ workshop_prefix }}-key"
+    group: "dp-{{ workshop_prefix }}-sg"
+    region: "{{ region }}"
+    instance_type: "{{ nodes.rhel.instance_type }}"
+    image: "{{ nodes.rhel.ami_id }}"
+    vpc_subnet_id: "{{ ec2_subnet.subnet.id }}"
+    wait: true
+    count_tag:
+      name: "rhel"
+    instance_tags:
+      name: "dp-{{ workshop_prefix }}-rhel"
+      username: "{{ local_user }}"
+      workshop_prefix: "{{ workshop_prefix }}"
+    exact_count: "{{ nodes.rhel.count }}"
+  register: ec2
+
+- name: Create VPC RHEL instance storage file
+  copy:
+    content: "{{ ec2.instance_ids }}\n"
+    dest: "{{ vpc_rhel_ids_path }}"
+    mode: 0400
+
+- name: 
+
+...

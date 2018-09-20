@@ -59,6 +59,10 @@ workshop_password:                ""
 inventory_working_dir:            "{{ lookup('env','PWD') }}/inventory"
 # Ansible SSH Key Location |      SSH Key Vars
 ssh_key_path:                     "{{ deploy_working_dir }}/{{ workshop_prefix }}-key"
+vpc_id_path:                      "{{ deploy_working_dir }}/{{ workshop_prefix }}-vpc_id"
+vpc_route_path:                   "{{ deploy_working_dir }}/{{ workshop_prefix }}-vpc_route"
+vpc_subnet_path:                  "{{ deploy_working_dir }}/{{ workshop_prefix }}-vpc_subnet"
+vpc_rhel_ids_path:                "{{ deploy_working_dir }}/{{ workshop_prefix }}-vpc_rhel_ids"
 ansible_ssh_private_key_file:     "{{ ssh_key_path }}"
 system_user:                      "ec2-user"    # AWS
-username:                         "{{ ansible_env.USERNAME }}"
+local_user:                       "{{ ansible_env.USERNAME }}"

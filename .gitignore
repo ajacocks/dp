@@ -2,5 +2,6 @@
 group_vars/all
 group_vars/all.yml
 inventory/ec2.ini
+inventory/hosts
 *.swp
 **/*.swp
