@@ -19,13 +19,13 @@
 #---------------------------------------------------
 #  SSH Key
 #---------------------------------------------------
-- name: Check for existing key and remove
-  ec2_key:
-    name: "dp-{{ workshop_prefix }}-key"
-    aws_access_key: "{{ aws_access_key }}"
-    aws_secret_key: "{{ aws_secret_key }}"
-    region: "{{ region }}"
-    state: absent
+# - name: Check for existing key and remove
+#   ec2_key:
+#     name: "dp-{{ workshop_prefix }}-key"
+#     aws_access_key: "{{ aws_access_key }}"
+#     aws_secret_key: "{{ aws_secret_key }}"
+#     region: "{{ region }}"
+#     state: absent
 
 - name: Create EC2 keypair
   ec2_key:
@@ -49,6 +49,7 @@
     content: "{{ ec2_key.key.private_key }}\n"
     dest: "{{ ssh_key_path }}"
     mode: 0400
+  when: ec2_key.changed
 
 #---------------------------------------------------
 #  Create AWS objects
@@ -77,6 +78,7 @@
     content: "{{ ec2_vpc.vpc.id }}\n"
     dest: "{{ vpc_id_path }}"
     mode: 0400
+  when: ec2_vpc.changed
 
 - name: Create VPC internet gateway
   ec2_vpc_igw:
@@ -133,6 +135,7 @@
     content: "{{ ec2_subnet.subnet.id }}\n"
     dest: "{{ vpc_subnet_path }}"
     mode: 0400
+  when: ec2_subnet.changed
 
 - name: Create VPC route table
   ec2_vpc_route_table:
@@ -158,6 +161,7 @@
     content: "{{ ec2_route.route_table.route_table_id }}\n"
     dest: "{{ vpc_route_path }}"
     mode: 0400
+  when: ec2_route.changed
 
 - name: Create RHEL instances
   ec2:
@@ -171,21 +175,57 @@
     image: "{{ nodes.rhel.ami_id }}"
     vpc_subnet_id: "{{ ec2_subnet.subnet.id }}"
     wait: true
-    count_tag:
-      name: "rhel"
+    exact_count: "{{ nodes.rhel.count }}"
+    count_tag: "workshop_prefix"
     instance_tags:
       name: "dp-{{ workshop_prefix }}-rhel"
       username: "{{ local_user }}"
       workshop_prefix: "{{ workshop_prefix }}"
-    exact_count: "{{ nodes.rhel.count }}"
   register: ec2
+
+- debug:
+    var: ec2
+
+- debug:
+    var: ec2.instances
+
+- debug:
+    var: ec2.instances.{{ item }}
+  with_sequence: count="{{ nodes.rhel.count }}" start=0
+
+- debug:
+    var: ec2.instances.{{ item }}.public_dns_name
+  with_sequence: count="{{ nodes.rhel.count }}" start=0
 
 - name: Create VPC RHEL instance storage file
   copy:
     content: "{{ ec2.instance_ids }}\n"
     dest: "{{ vpc_rhel_ids_path }}"
     mode: 0400
+  when: ec2.changed
 
-- name: 
+#- name: Display output
+#  debug:
+#  debug: msg="The key is {{ item.key }} and the value is {{ item.value }}"
+#  with_dict: "{{ ec2.ami_launch_index }}"
+#  with_dict: "{{ ec2.ami_launch_index[0] }}"
+#  with_dict: "{{ output.results[1].response[0] }}"
+
+#- name: Create DNS records
+#  route53:
+#    aws_access_key: "{{ aws_access_key }}"
+#    aws_secret_key: "{{ aws_secret_key }}"
+#    region: "{{ region }}"
+#    zone: "{{ domain_name }}"
+#    type: "CNAME"
+#    ttl: "300"
+#    record: "{{ workshop_prefix }}.rhel.{{ item }}.dp.redhatgov.io"
+#    value: "\{{ ec2.instances.\{{ item \}}.dns_name \}}"
+#    value: "{{ lookup('vars', ec2.instances + '.' + item + '.' + dns_name) }}"
+#    value: 
+#    wait: yes
+#    state: present
+#  with_sequence: count={{ nodes.rhel.count }} start=0
+#  with_items: ec2.ami_launch_index
 
 ...
