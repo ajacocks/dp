@@ -224,8 +224,9 @@
       Name: "dp-{{ workshop_prefix }}-rhel"
       username: "{{ local_user }}"
       workshop_prefix: "{{ workshop_prefix }}"
+      rhel: "dp-{{ workshop_prefix }}"
     exact_count: "{{ nodes.rhel.count }}"
-    count_tag: "count=dp-{{ workshop_prefix }}-rhel"
+    count_tag: rhel
   register: ec2_rhel
 
 - debug:
@@ -273,8 +274,9 @@
       Name: "dp-{{ workshop_prefix }}-win"
       username: "{{ local_user }}"
       workshop_prefix: "{{ workshop_prefix }}"
+      win: "dp-{{ workshop_prefix }}"
     exact_count: "{{ nodes.win.count }}"
-    count_tag: "count=dp-{{ workshop_prefix }}-win"
+    count_tag: win
   register: ec2_win
 
 - debug:
