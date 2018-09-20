@@ -8,7 +8,17 @@
 #  Ansible Hosts Creation
 #---------------------------------------------------
 - name: Template Ansible Hosts File
-  template: dest="{{ inventory_working_dir }}/hosts"  src=hosts.j2
+  template:
+    dest: "{{ inventory_working_dir }}/hosts"
+    src: "hosts.j2"
+
+#---------------------------------------------------
+#  WinRM templating
+#---------------------------------------------------
+- name: Template Windows WinRM configuration
+  template:
+    dest: "{{ winrm_path }}"
+    src: "winrm.txt.j2"
 
 #---------------------------------------------------
 #  EC2 INI Creation
@@ -95,7 +105,7 @@
 
 - name: Create RHEL security group
   ec2_group:
-    name: "dp-{{ workshop_prefix }}-sg"
+    name: "dp-{{ workshop_prefix }}-rhel-sg"
     description: "SG for RHEL hosts"
     aws_access_key: "{{ aws_access_key }}"
     aws_secret_key: "{{ aws_secret_key }}"
@@ -106,10 +116,33 @@
       ports: 22
       cidr_ip: 0.0.0.0/0
       rule_desc: "allow all on port 22 (SSH)"
-    - proto: tcp
-      ports: 8888
+#    - proto: tcp
+#      ports: 8888
+#      cidr_ip: 0.0.0.0/0
+#      rule_desc: "allow all on port 8888 (wetty)"
+    tags:
+      username: "{{ local_user }}"
+      workshop: "dp"
+      workshop_prefix: "{{ workshop_prefix }}"
+    state: present
+
+- name: Create Windows security group
+  ec2_group:
+    name: "dp-{{ workshop_prefix }}-win-sg"
+    description: "SG for Windows hosts"
+    aws_access_key: "{{ aws_access_key }}"
+    aws_secret_key: "{{ aws_secret_key }}"
+    region: "{{ region }}"
+    vpc_id: "{{ ec2_vpc.vpc.id }}"
+    rules:
+#    - proto: "tcp"
+#      ports: 5985
+#      cidr_ip: 0.0.0.0/0
+#      rule_desc: "allow all on port 5985 (WinRM HTTP)"
+    - proto: "tcp"
+      ports: 5986
       cidr_ip: 0.0.0.0/0
-      rule_desc: "allow all on port 8888 (wetty)"
+      rule_desc: "allow all on port 5985 (WinRM HTTPS)"
     tags:
       username: "{{ local_user }}"
       workshop: "dp"
@@ -164,38 +197,25 @@
   when: ec2_route.changed
 
 - name: Create RHEL instances
+# ansible --private-key=/home/ajacocks/Dropbox/src/dp/.redhatgov/dp-key -m ping tag_name_{{ workshop_prefix }}_dp_rhel
   ec2:
     aws_access_key: "{{ aws_access_key }}"
     aws_secret_key: "{{ aws_secret_key }}"
     assign_public_ip: yes
     key_name: "dp-{{ workshop_prefix }}-key"
-    group: "dp-{{ workshop_prefix }}-sg"
+    group: "dp-{{ workshop_prefix }}-rhel-sg"
     region: "{{ region }}"
     instance_type: "{{ nodes.rhel.instance_type }}"
     image: "{{ nodes.rhel.ami_id }}"
     vpc_subnet_id: "{{ ec2_subnet.subnet.id }}"
     wait: true
     exact_count: "{{ nodes.rhel.count }}"
-    count_tag: "workshop_prefix"
+    count_tag: "name"
     instance_tags:
       name: "dp-{{ workshop_prefix }}-rhel"
       username: "{{ local_user }}"
       workshop_prefix: "{{ workshop_prefix }}"
   register: ec2
-
-- debug:
-    var: ec2
-
-- debug:
-    var: ec2.instances
-
-- debug:
-    var: ec2.instances.{{ item }}
-  with_sequence: count="{{ nodes.rhel.count }}" start=0
-
-- debug:
-    var: ec2.instances.{{ item }}.public_dns_name
-  with_sequence: count="{{ nodes.rhel.count }}" start=0
 
 - name: Create VPC RHEL instance storage file
   copy:
@@ -203,6 +223,52 @@
     dest: "{{ vpc_rhel_ids_path }}"
     mode: 0400
   when: ec2.changed
+
+- name: Create Windows instances
+# ansible --private-key=/home/ajacocks/Dropbox/src/dp/.redhatgov/dp-key -m ping tag_name_{{ workshop_prefix }}_dp_rhel
+  ec2:
+    aws_access_key: "{{ aws_access_key }}"
+    aws_secret_key: "{{ aws_secret_key }}"
+    assign_public_ip: yes
+    key_name: "dp-{{ workshop_prefix }}-key"
+    group: "dp-{{ workshop_prefix }}-win-sg"
+    region: "{{ region }}"
+    instance_type: "{{ nodes.win.instance_type }}"
+    image: "{{ nodes.win.ami_id }}"
+    vpc_subnet_id: "{{ ec2_subnet.subnet.id }}"
+    user_data: "{{ lookup('file', '{{ winrm_path }}') }}"
+    wait: true
+    exact_count: "{{ nodes.win.count }}"
+    count_tag: "name"
+    instance_tags:
+      name: "dp-{{ workshop_prefix }}-win"
+      username: "{{ local_user }}"
+      workshop_prefix: "{{ workshop_prefix }}"
+  register: ec2_win
+
+- name: Create VPC Windows instance storage file
+  copy:
+    content: "{{ ec2_win.instance_ids }}\n"
+    dest: "{{ vpc_win_ids_path }}"
+    mode: 0400
+  when: ec2_win.changed
+
+- debug:
+    var: ec2_win
+
+#- debug:
+#    var: ec2
+
+#- debug:
+#    var: ec2.instances
+
+#- debug:
+#    var: ec2.instances.{{ item }}
+#  with_sequence: count="{{ nodes.rhel.count }}" start=0
+
+#- debug:
+#    var: ec2.instances.{{ item }}.public_dns_name
+#  with_sequence: count="{{ nodes.rhel.count }}" start=0
 
 #- name: Display output
 #  debug:
