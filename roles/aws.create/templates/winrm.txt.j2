@@ -1,6 +1,5 @@
-＜powershell＞
-  Invoke-WebRequest -Uri https://raw.githubusercontent.com/ansible/ansible/devel/examples/scripts/ConfigureRemotingForAnsible.ps1 -OutFile ConfigureRemotingForAnsible.ps1
-  powershell -ExecutionPolicy RemoteSigned .\ConfigureRemotingForAnsible.ps1
-  $admin = [ADSI]("WinNT://./administrator, user")
-  $admin.SetPassword("{{ workshop_password }}")
-＜/powershell＞
+<powershell>
+$admin = [adsi]("WinNT://./administrator, user")
+$admin.PSBase.Invoke("SetPassword", "{{ workshop_password }}")
+Invoke-Expression ((New-Object System.Net.Webclient).DownloadString('https://raw.githubusercontent.com/ansible/ansible/devel/examples/scripts/ConfigureRemotingForAnsible.ps1'))
+</powershell>

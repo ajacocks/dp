@@ -4,20 +4,20 @@
 #===============================================================================
 #  Deprovisioning
 #===============================================================================
-# - name: Remove Windows instances
-#   ec2:
-#     aws_access_key: "{{ aws_access_key }}"
-#     aws_secret_key: "{{ aws_secret_key }}"
-#     key_name: "dp-{{ workshop_prefix }}-key"
-#     group: "dp-{{ workshop_prefix }}-win-sg"
-#     region: "{{ region }}"
-#     instance_type: "{{ nodes.win.instance_type }}"
-#     image: "{{ nodes.win.ami_id }}"
-#     vpc_subnet_id: "{{ lookup('file', '{{ vpc_subnet_path }}' ) }}"
-#     wait: true
-#     instance_ids: "{{ lookup('file', '{{ vpc_win_ids_path }}' ) }}"
-#     state: absent
-#   when: nodes.win.count > 0
+- name: Remove Windows instances
+  ec2:
+    aws_access_key: "{{ aws_access_key }}"
+    aws_secret_key: "{{ aws_secret_key }}"
+    key_name: "dp-{{ workshop_prefix }}-key"
+    group: "dp-{{ workshop_prefix }}-win-sg"
+    region: "{{ region }}"
+    instance_type: "{{ nodes.win.instance_type }}"
+    image: "{{ nodes.win.ami_id }}"
+    vpc_subnet_id: "{{ lookup('file', '{{ vpc_subnet_path }}' ) }}"
+    wait: true
+    instance_ids: "{{ lookup('file', '{{ vpc_win_ids_path }}' ) }}"
+    state: absent
+  when: nodes.win.count > 0
 
 - name: Remove RHEL instances
   ec2:
