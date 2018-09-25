@@ -1,6 +1,6 @@
 ---
 - name: Deploy attack and defense hosts
-  hosts: local_target
+  hosts: localhost
   roles:
   - { role: aws.create, tags: ["create"] }
 ...

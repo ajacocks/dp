@@ -1,6 +1,6 @@
 ---
 - name: Remove attack and defense hosts
-  hosts: local_target
+  hosts: localhost
   roles:
   - { role: aws.remove, tags: ["delete"] }
 ...
