@@ -11,7 +11,7 @@
   template:
     dest: "{{ inventory_working_dir }}/hosts"
     src: "hosts.j2"
-  when: execution == 'local'
+  when: execution is defined
 
 #---------------------------------------------------
 #  WinRM templating
