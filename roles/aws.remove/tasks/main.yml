@@ -2,6 +2,120 @@
 # tasks file for roles/aws.remove
 
 #===============================================================================
+#  Search and record IDs
+#===============================================================================
+- name: Initialize an empty list for our strings
+  set_fact:
+    route_id: ""
+    subnet_id: ""
+    vpc_id: ""
+    rhel_instance_ids: []
+    rhel_group_id: ""
+    win_instance_ids: []
+    win_group_id: ""
+
+- name: lookup running RHEL instances
+  ec2_instance_facts:
+    aws_access_key: "{{ aws_access_key }}"
+    aws_secret_key: "{{ aws_secret_key }}"
+    region: "{{ region }}"
+    filters:
+      tag:rhel: "dp-{{ workshop_prefix }}"
+  register: ec2_rhel
+
+- name: Append RHEL instances to list`
+  set_fact:
+    rhel_instance_ids: "{{ rhel_instance_ids }} + [ '{{ item.instance_id }}' ]"
+  with_items: "{{ ec2_rhel.instances }}"
+
+- name: lookup running Windows instances
+  ec2_instance_facts:
+    aws_access_key: "{{ aws_access_key }}"
+    aws_secret_key: "{{ aws_secret_key }}"
+    region: "{{ region }}"
+    filters:
+      tag:win: "dp-{{ workshop_prefix }}"
+  register: ec2_win
+
+- name: Append Windows instances to list`
+  set_fact:
+    win_instance_ids: "{{ win_instance_ids }} + [ '{{ item.instance_id }}' ]"
+  with_items: "{{ ec2_win.instances }}"
+
+- name: lookup running windows security groups
+  ec2_group_facts:
+    aws_access_key: "{{ aws_access_key }}"
+    aws_secret_key: "{{ aws_secret_key }}"
+    region: "{{ region }}"
+    filters:
+      tag:win: "dp-{{ workshop_prefix }}"
+  register: ec2_win_grp
+
+- name: Record Windows security group ID
+  set_fact:
+    win_group_id: "{{ ec2_win_grp.security_groups[0].group_id }}"
+  when: ec2_win_grp.security_groups|length > 0
+
+- name: lookup running rhel security groups
+  ec2_group_facts:
+    aws_access_key: "{{ aws_access_key }}"
+    aws_secret_key: "{{ aws_secret_key }}"
+    region: "{{ region }}"
+    filters:
+      tag:rhel: "dp-{{ workshop_prefix }}"
+  register: ec2_rhel_grp
+
+- name: Record RHEL security group ID
+  set_fact:
+    rhel_group_id: "{{ ec2_rhel_grp.security_groups[0].group_id }}"
+  when: ec2_rhel_grp.security_groups|length > 0
+
+- name: lookup running subnets
+  ec2_vpc_subnet_facts:
+    aws_access_key: "{{ aws_access_key }}"
+    aws_secret_key: "{{ aws_secret_key }}"
+    region: "{{ region }}"
+    filters:
+      tag:workshop: "dp"
+      tag:workshop_prefix: "{{ workshop_prefix }}"
+  register: ec2_subnet
+
+- name: Record subnet ID
+  set_fact:
+    subnet_id: "{{ ec2_subnet.subnets[0].subnet_id }}"
+  when: ec2_subnet.subnets|length > 0
+
+- name: lookup running vpc route tables
+  ec2_vpc_route_table_facts:
+    aws_access_key: "{{ aws_access_key }}"
+    aws_secret_key: "{{ aws_secret_key }}"
+    region: "{{ region }}"
+    filters:
+      tag:workshop: "dp"
+      tag:workshop_prefix: "{{ workshop_prefix }}"
+  register: ec2_route
+
+- name: Record route table ID 
+  set_fact:
+    route_id: "{{ ec2_route.route_tables[0].id }}"
+  when: ec2_route.route_tables|length > 0
+
+- name: lookup running vpcs
+  ec2_vpc_net_facts:
+    aws_access_key: "{{ aws_access_key }}"
+    aws_secret_key: "{{ aws_secret_key }}"
+    region: "{{ region }}"
+    filters:
+      tag:workshop: "dp"
+      tag:workshop_prefix: "{{ workshop_prefix }}"
+  register: ec2_vpc
+
+- name: Record VPC ID
+  set_fact:
+    vpc_id: "{{ ec2_vpc.vpcs[0].id }}"
+  when: ec2_vpc.vpcs|length > 0
+
+#===============================================================================
 #  Deprovisioning
 #===============================================================================
 - name: Remove Windows instances
@@ -13,9 +127,11 @@
     region: "{{ region }}"
     instance_type: "{{ nodes.win.instance_type }}"
     image: "{{ nodes.win.ami_id }}"
-    vpc_subnet_id: "{{ lookup('file', '{{ vpc_subnet_path }}' ) }}"
+    vpc_subnet_id: "{{ subnet_id }}"
+#    vpc_subnet_id: "{{ lookup('file', '{{ vpc_subnet_path }}' ) }}"
     wait: true
-    instance_ids: "{{ lookup('file', '{{ vpc_win_ids_path }}' ) }}"
+    instance_ids: "{{ win_instance_ids }}"
+#    instance_ids: "{{ lookup('file', '{{ vpc_win_ids_path }}' ) }}"
     state: absent
   when: nodes.win.count > 0
 
@@ -28,9 +144,11 @@
     region: "{{ region }}"
     instance_type: "{{ nodes.rhel.instance_type }}"
     image: "{{ nodes.rhel.ami_id }}"
-    vpc_subnet_id: "{{ lookup('file', '{{ vpc_subnet_path }}' ) }}"
+    vpc_subnet_id: "{{ subnet_id }}"
+#    vpc_subnet_id: "{{ lookup('file', '{{ vpc_subnet_path }}' ) }}"
     wait: true
-    instance_ids: "{{ lookup('file', '{{ vpc_rhel_ids_path }}' ) }}"
+    instance_ids: "{{ rhel_instance_ids }}"
+#    instance_ids: "{{ lookup('file', '{{ vpc_rhel_ids_path }}' ) }}"
     state: absent
   when: nodes.rhel.count > 0
 
@@ -39,9 +157,11 @@
     aws_access_key: "{{ aws_access_key }}"
     aws_secret_key: "{{ aws_secret_key }}"
     region: "{{ region }}"
-    vpc_id: "{{ lookup('file', '{{ vpc_id_path }}' ) }}"
+    vpc_id: "{{ vpc_id }}"
+#    vpc_id: "{{ lookup('file', '{{ vpc_id_path }}' ) }}"
     lookup: id
-    route_table_id: "{{ lookup('file', '{{ vpc_route_path }}' ) }}"
+    route_table_id: "{{ route_id }}"
+#    route_table_id: "{{ lookup('file', '{{ vpc_route_path }}' ) }}"
     state: absent
 
 - name: Delete public subnet
@@ -50,7 +170,8 @@
     aws_secret_key: "{{ aws_secret_key }}"
     region: "{{ region }}"
     cidr: "10.0.2.0/24"
-    vpc_id: "{{ lookup('file', '{{ vpc_id_path }}' ) }}"
+    vpc_id: "{{ vpc_id }}"
+#    vpc_id: "{{ lookup('file', '{{ vpc_id_path }}' ) }}"
     state: absent
 
 - name: Delete Windows security group
@@ -74,7 +195,8 @@
     aws_access_key: "{{ aws_access_key }}"
     aws_secret_key: "{{ aws_secret_key }}"
     region: "{{ region }}"
-    vpc_id: "{{ lookup('file', '{{ vpc_id_path }}' ) }}"
+    vpc_id: "{{ vpc_id }}"
+#    vpc_id: "{{ lookup('file', '{{ vpc_id_path }}' ) }}"
     state: absent
 
 - name: Delete VPC
@@ -86,4 +208,12 @@
     cidr_block: "10.0.0.0/16"
     state: absent
 
+- name: Delete key
+  ec2_key:
+    name: "dp-{{ workshop_prefix }}-key"
+    aws_access_key: "{{ aws_access_key }}"
+    aws_secret_key: "{{ aws_secret_key }}"
+    region: "{{ region }}"
+    state: absent
+    
 ...

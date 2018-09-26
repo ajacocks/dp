@@ -26,6 +26,7 @@
 #---------------------------------------------------
 - name: Template EC2 INI File
   template: dest="{{ inventory_working_dir }}/ec2.ini"  src=ec2.ini.j2
+  when: execution is defined
 
 #---------------------------------------------------
 #  SSH Key
@@ -126,6 +127,7 @@
       username: "{{ local_user }}"
       workshop: "dp"
       workshop_prefix: "{{ workshop_prefix }}"
+      rhel: "dp-{{ workshop_prefix }}"
     state: present
 
 - name: Create Windows security group
@@ -157,6 +159,7 @@
       username: "{{ local_user }}"
       workshop: "dp"
       workshop_prefix: "{{ workshop_prefix }}"
+      win: "dp-{{ workshop_prefix }}"
     state: present
 
 - name: Create public subnet
