@@ -85,13 +85,6 @@
 - debug:
     var: ec2_vpc
 
-- name: Create VPC ID storage file
-  copy:
-    content: "{{ ec2_vpc.vpc.id }}\n"
-    dest: "{{ vpc_id_path }}"
-    mode: 0400
-  when: ec2_vpc.changed
-
 - name: Create VPC internet gateway
   ec2_vpc_igw:
     aws_access_key: "{{ aws_access_key }}"
@@ -105,6 +98,9 @@
       workshop: "dp"
       workshop_prefix: "{{ workshop_prefix }}"
   register: ec2_igw
+
+- debug:
+    var: ec2_igw
 
 - name: Create RHEL security group
   ec2_group:
@@ -177,12 +173,8 @@
     wait: yes
   register: ec2_subnet
 
-- name: Create VPC public subnet storage file
-  copy:
-    content: "{{ ec2_subnet.subnet.id }}\n"
-    dest: "{{ vpc_subnet_path }}"
-    mode: 0400
-  when: ec2_subnet.changed
+- debug:
+    var: ec2_subnet
 
 - name: Create VPC route table
   ec2_vpc_route_table:
@@ -204,12 +196,8 @@
     state: present
   register: ec2_route
 
-- name: Create VPC route table storage file
-  copy:
-    content: "{{ ec2_route.route_table.route_table_id }}\n"
-    dest: "{{ vpc_route_path }}"
-    mode: 0400
-  when: ec2_route.changed
+- debug:
+    var: ec2_route
 
 - name: Create RHEL instances
 # ansible --private-key=/home/ajacocks/Dropbox/src/dp/.redhatgov/dp-key -m ping tag_name_{{ workshop_prefix }}_dp_rhel
@@ -239,13 +227,6 @@
 - debug:
     var: item
   with_items: ec2_rhel.tagged_instances
-
-- name: Create VPC RHEL instance storage file
-  copy:
-    content: "{{ ec2_rhel.instance_ids }}\n"
-    dest: "{{ vpc_rhel_ids_path }}"
-    mode: 0400
-  when: ec2_rhel.changed
 
 #- name: wait for SSH to answer on all hosts
 #  wait_for:
@@ -285,13 +266,6 @@
 
 - debug:
     var: ec2_win
-
-- name: Create VPC Windows instance storage file
-  copy:
-    content: "{{ ec2_win.instance_ids }}\n"
-    dest: "{{ vpc_win_ids_path }}"
-    mode: 0400
-  when: ec2_win.changed
 
 #- name: wait for WinRM to answer on all hosts
 #  wait_for:
