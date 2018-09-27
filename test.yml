@@ -12,8 +12,8 @@
   tasks:
     - ec2_key:
         name: "dp-dp-key"
-#    aws_access_key: "{{ aws_access_key }}"
-#    aws_secret_key: "{{ aws_secret_key }}"
+        aws_access_key: "{{ lookup('env','AWS_ACCESS_KEY_ID') }}"
+        aws_secret_key: "{{ lookup('env','AWS_SECRET_ACCESS_KEY') }}"
         region: "us-east-2"
         state: present
       register: ec2_key
