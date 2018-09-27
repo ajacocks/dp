@@ -1,18 +1,7 @@
 ---
 - name: Deploy attack and defense hosts
-  hosts: local_target
-  tasks:
-  - debug:
-      var: AWS_ACCESS_KEY
-  - debug:
-      var: AWS_SECRET_KEY
-  - debug:
-      var: AWS_ACCESS_KEY_ID
-  - debug:
-      var: AWS_SECRET_ACCESS_KEY
-
-- name: Deploy attack and defense hosts
-  hosts: local_target
+  hosts: localhost
+  connection: local
   roles:
   - { role: aws.create, tags: ["create"] }
 ...
