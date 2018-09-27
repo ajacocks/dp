@@ -42,8 +42,6 @@
 - name: Create EC2 keypair
   ec2_key:
     name: "dp-{{ workshop_prefix }}-key"
-#    aws_access_key: "{{ lookup('env','AWS_ACCESS_KEY_ID') }}"
-#    aws_secret_key: "{{ lookup('env','AWS_SECRET_ACCESS_KEY') }}"
     region: "{{ region }}"
     state: present
   register: ec2_key
@@ -64,8 +62,6 @@
 - name: Create VPC
   ec2_vpc_net:
     name: "dp-{{ workshop_prefix }}-vpc"
-#    aws_access_key: "{{ lookup('env','AWS_ACCESS_KEY_ID') }}"
-#    aws_secret_key: "{{ lookup('env','AWS_SECRET_ACCESS_KEY') }}"
     region: "{{ region }}"
     cidr_block: "10.0.0.0/16"
     dns_hostnames: yes
@@ -82,8 +78,6 @@
 
 - name: Create VPC internet gateway
   ec2_vpc_igw:
-#    aws_access_key: "{{ lookup('env','AWS_ACCESS_KEY_ID') }}"
-#    aws_secret_key: "{{ lookup('env','AWS_SECRET_ACCESS_KEY') }}"
     region: "{{ region }}"
     vpc_id: "{{ ec2_vpc.vpc.id }}"
     state: present
@@ -101,8 +95,6 @@
   ec2_group:
     name: "dp-{{ workshop_prefix }}-rhel-sg"
     description: "SG for RHEL hosts"
-#    aws_access_key: "{{ lookup('env','AWS_ACCESS_KEY_ID') }}"
-#    aws_secret_key: "{{ lookup('env','AWS_SECRET_ACCESS_KEY') }}"
     region: "{{ region }}"
     vpc_id: "{{ ec2_vpc.vpc.id }}"
     rules:
@@ -125,8 +117,6 @@
   ec2_group:
     name: "dp-{{ workshop_prefix }}-win-sg"
     description: "SG for Windows hosts"
-#    aws_access_key: "{{ lookup('env','AWS_ACCESS_KEY_ID') }}"
-#    aws_secret_key: "{{ lookup('env','AWS_SECRET_ACCESS_KEY') }}"
     region: "{{ region }}"
     vpc_id: "{{ ec2_vpc.vpc.id }}"
     rules:
@@ -155,8 +145,6 @@
 
 - name: Create public subnet
   ec2_vpc_subnet:
-#    aws_access_key: "{{ lookup('env','AWS_ACCESS_KEY_ID') }}"
-#    aws_secret_key: "{{ lookup('env','AWS_SECRET_ACCESS_KEY') }}"
     cidr: "10.0.2.0/24"
     region: "{{ region }}"
     vpc_id: "{{ ec2_vpc.vpc.id }}"
@@ -173,8 +161,6 @@
 
 - name: Create VPC route table
   ec2_vpc_route_table:
-#    aws_access_key: "{{ lookup('env','AWS_ACCESS_KEY_ID') }}"
-#    aws_secret_key: "{{ lookup('env','AWS_SECRET_ACCESS_KEY') }}"
     region: "{{ region }}"
     vpc_id: "{{ ec2_vpc.vpc.id }}"
     subnets:
@@ -195,10 +181,7 @@
     var: ec2_route
 
 - name: Create RHEL instances
-# ansible --private-key=/home/ajacocks/Dropbox/src/dp/.redhatgov/dp-key -m ping tag_name_{{ workshop_prefix }}_dp_rhel
   ec2:
-#    aws_access_key: "{{ lookup('env','AWS_ACCESS_KEY_ID') }}"
-#    aws_secret_key: "{{ lookup('env','AWS_SECRET_ACCESS_KEY') }}"
     assign_public_ip: yes
     key_name: "dp-{{ workshop_prefix }}-key"
     group: "dp-{{ workshop_prefix }}-rhel-sg"
@@ -212,7 +195,7 @@
       username: "{{ local_user }}"
       workshop_prefix: "{{ workshop_prefix }}"
       rhel: "dp-{{ workshop_prefix }}"
-    exact_count: "{{ nodes.rhel.count }}"
+    exact_count: "{{ rhel_count }}"
     count_tag: rhel
   register: ec2_rhel
 
@@ -222,8 +205,6 @@
 
 - name: Create Windows instances
   ec2:
-#    aws_access_key: "{{ lookup('env','AWS_ACCESS_KEY_ID') }}"
-#    aws_secret_key: "{{ lookup('env','AWS_SECRET_ACCESS_KEY') }}"
     assign_public_ip: yes
     key_name: "dp-{{ workshop_prefix }}-key"
     group: "dp-{{ workshop_prefix }}-win-sg"
@@ -238,7 +219,7 @@
       username: "{{ local_user }}"
       workshop_prefix: "{{ workshop_prefix }}"
       win: "dp-{{ workshop_prefix }}"
-    exact_count: "{{ nodes.win.count }}"
+    exact_count: "{{ win_count }}"
     count_tag: win
   register: ec2_win
 

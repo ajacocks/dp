@@ -22,8 +22,8 @@ aws_secret_key:                   ""
 domain_name:                      ""
 zone_id:                          ""
 # aws.infra                |      AWS Terraform Vars
-nodes.rhel.count:                 "2"            # RHEL nodes
-nodes.win.count:                  "2"            # Windows nodes
+rhel_count:                       "2"            # RHEL nodes
+win_count:                        "2"            # Windows nodes
 region:                           "us-east-2"    # AWS Region, configures ec2.ini too
 ebs_root_block_size:              50
 # aws.infra                |      AWS AMI IDs
