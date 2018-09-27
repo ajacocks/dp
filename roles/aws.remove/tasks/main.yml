@@ -16,8 +16,6 @@
 
 - name: lookup running RHEL instances
   ec2_instance_facts:
-    aws_access_key: "{{ aws_access_key }}"
-    aws_secret_key: "{{ aws_secret_key }}"
     region: "{{ region }}"
     filters:
       tag:rhel: "dp-{{ workshop_prefix }}"
@@ -30,8 +28,6 @@
 
 - name: lookup running Windows instances
   ec2_instance_facts:
-    aws_access_key: "{{ aws_access_key }}"
-    aws_secret_key: "{{ aws_secret_key }}"
     region: "{{ region }}"
     filters:
       tag:win: "dp-{{ workshop_prefix }}"
@@ -44,8 +40,6 @@
 
 - name: lookup running windows security groups
   ec2_group_facts:
-    aws_access_key: "{{ aws_access_key }}"
-    aws_secret_key: "{{ aws_secret_key }}"
     region: "{{ region }}"
     filters:
       tag:win: "dp-{{ workshop_prefix }}"
@@ -58,8 +52,6 @@
 
 - name: lookup running rhel security groups
   ec2_group_facts:
-    aws_access_key: "{{ aws_access_key }}"
-    aws_secret_key: "{{ aws_secret_key }}"
     region: "{{ region }}"
     filters:
       tag:rhel: "dp-{{ workshop_prefix }}"
@@ -72,8 +64,6 @@
 
 - name: lookup running subnets
   ec2_vpc_subnet_facts:
-    aws_access_key: "{{ aws_access_key }}"
-    aws_secret_key: "{{ aws_secret_key }}"
     region: "{{ region }}"
     filters:
       tag:workshop: "dp"
@@ -87,8 +77,6 @@
 
 - name: lookup running vpc route tables
   ec2_vpc_route_table_facts:
-    aws_access_key: "{{ aws_access_key }}"
-    aws_secret_key: "{{ aws_secret_key }}"
     region: "{{ region }}"
     filters:
       tag:workshop: "dp"
@@ -102,8 +90,6 @@
 
 - name: lookup running vpcs
   ec2_vpc_net_facts:
-    aws_access_key: "{{ aws_access_key }}"
-    aws_secret_key: "{{ aws_secret_key }}"
     region: "{{ region }}"
     filters:
       tag:workshop: "dp"
@@ -120,8 +106,6 @@
 #===============================================================================
 - name: Remove Windows instances
   ec2:
-    aws_access_key: "{{ aws_access_key }}"
-    aws_secret_key: "{{ aws_secret_key }}"
     key_name: "dp-{{ workshop_prefix }}-key"
     group: "dp-{{ workshop_prefix }}-win-sg"
     region: "{{ region }}"
@@ -137,8 +121,6 @@
 
 - name: Remove RHEL instances
   ec2:
-    aws_access_key: "{{ aws_access_key }}"
-    aws_secret_key: "{{ aws_secret_key }}"
     key_name: "dp-{{ workshop_prefix }}-key"
     group: "dp-{{ workshop_prefix }}-rhel-sg"
     region: "{{ region }}"
@@ -154,8 +136,6 @@
 
 - name: Delete VPC route table
   ec2_vpc_route_table:
-    aws_access_key: "{{ aws_access_key }}"
-    aws_secret_key: "{{ aws_secret_key }}"
     region: "{{ region }}"
     vpc_id: "{{ vpc_id }}"
 #    vpc_id: "{{ lookup('file', '{{ vpc_id_path }}' ) }}"
@@ -166,8 +146,6 @@
 
 - name: Delete public subnet
   ec2_vpc_subnet:
-    aws_access_key: "{{ aws_access_key }}"
-    aws_secret_key: "{{ aws_secret_key }}"
     region: "{{ region }}"
     cidr: "10.0.2.0/24"
     vpc_id: "{{ vpc_id }}"
@@ -177,23 +155,17 @@
 - name: Delete Windows security group
   ec2_group:
     name: "dp-{{ workshop_prefix }}-win-sg"
-    aws_access_key: "{{ aws_access_key }}"
-    aws_secret_key: "{{ aws_secret_key }}"
     region: "{{ region }}"
     state: absent
 
 - name: Delete RHEL security group
   ec2_group:
     name: "dp-{{ workshop_prefix }}-rhel-sg"
-    aws_access_key: "{{ aws_access_key }}"
-    aws_secret_key: "{{ aws_secret_key }}"
     region: "{{ region }}"
     state: absent
 
 - name: Delete VPC internet gateway
   ec2_vpc_igw:
-    aws_access_key: "{{ aws_access_key }}"
-    aws_secret_key: "{{ aws_secret_key }}"
     region: "{{ region }}"
     vpc_id: "{{ vpc_id }}"
 #    vpc_id: "{{ lookup('file', '{{ vpc_id_path }}' ) }}"
@@ -202,8 +174,6 @@
 - name: Delete VPC
   ec2_vpc_net:
     name: "dp-{{ workshop_prefix }}-vpc"
-    aws_access_key: "{{ aws_access_key }}"
-    aws_secret_key: "{{ aws_secret_key }}"
     region: "{{ region }}"
     cidr_block: "10.0.0.0/16"
     state: absent
@@ -211,8 +181,6 @@
 - name: Delete key
   ec2_key:
     name: "dp-{{ workshop_prefix }}-key"
-    aws_access_key: "{{ aws_access_key }}"
-    aws_secret_key: "{{ aws_secret_key }}"
     region: "{{ region }}"
     state: absent
     
