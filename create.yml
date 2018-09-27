@@ -1,4 +1,10 @@
 ---
+- name: dump variables
+  hosts: local_target
+  tasks:
+    - debug:
+        var: env
+
 - name: Deploy attack and defense hosts
   hosts: local_target
   roles:
