@@ -3,6 +3,10 @@
   hosts: local_target
   tasks:
   - debug:
+      var: AWS_ACCESS_KEY
+  - debug:
+      var: AWS_SECRET_KEY
+  - debug:
       var: AWS_ACCESS_KEY_ID
   - debug:
       var: AWS_SECRET_ACCESS_KEY
