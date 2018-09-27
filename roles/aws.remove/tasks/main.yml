@@ -21,6 +21,9 @@
       tag:rhel: "dp-{{ workshop_prefix }}"
   register: ec2_rhel
 
+- debug:
+    var: ec2_rhel
+
 - name: Append RHEL instances to list`
   set_fact:
     rhel_instance_ids: "{{ rhel_instance_ids }} + [ '{{ item.instance_id }}' ]"
@@ -101,9 +104,43 @@
     vpc_id: "{{ ec2_vpc.vpcs[0].id }}"
   when: ec2_vpc.vpcs|length > 0
 
+- name: Lookup existing Windows DNS records
+  route53:
+    state: get
+    zone: "{{ domain_name }}"
+    record: "win2016.{{ dns_idx }}.{{ workshop_prefix }}.{{ domain_name }}"
+    type: CNAME
+  register: win_rec
+  loop: "{{ win_instance_ids }}"
+  loop_control:
+    index_var: dns_idx
+
+- name: Lookup existing RHEL DNS records
+  route53:
+    state: get
+    zone: "{{ domain_name }}"
+    record: "rhel7.{{ dns_idx }}.{{ workshop_prefix }}.{{ domain_name }}"
+    type: CNAME
+  register: rhel_rec
+  loop: "{{ rhel_instance_ids }}"
+  loop_control:
+    index_var: dns_idx
+
 #===============================================================================
 #  Deprovisioning
 #===============================================================================
+
+- name: Remove existing Windows DNS records
+  route53:
+    state: absent
+    zone: "{{ domain_name }}"
+    record: "{{ item.set.record }}"
+    ttl: "{{ item.set.ttl }}"
+    type: "{{ item.set.type }}"
+    value: "{{ item.set.value }}"
+  when: item.set.record is defined
+  with_items: "{{ win_rec.results }}"
+
 - name: Remove Windows instances
   ec2:
     key_name: "dp-{{ workshop_prefix }}-key"
@@ -112,12 +149,20 @@
     instance_type: "{{ nodes.win.instance_type }}"
     image: "{{ nodes.win.ami_id }}"
     vpc_subnet_id: "{{ subnet_id }}"
-#    vpc_subnet_id: "{{ lookup('file', '{{ vpc_subnet_path }}' ) }}"
     wait: true
     instance_ids: "{{ win_instance_ids }}"
-#    instance_ids: "{{ lookup('file', '{{ vpc_win_ids_path }}' ) }}"
     state: absent
-  when: nodes.win.count > 0
+
+- name: Remove existing RHEL DNS records
+  route53:
+    state: absent
+    zone: "{{ domain_name }}"
+    record: "{{ item.set.record }}"
+    ttl: "{{ item.set.ttl }}"
+    type: "{{ item.set.type }}"
+    value: "{{ item.set.value }}"
+  when: item.set.record is defined
+  with_items: "{{ rhel_rec.results }}"
 
 - name: Remove RHEL instances
   ec2:
@@ -127,21 +172,16 @@
     instance_type: "{{ nodes.rhel.instance_type }}"
     image: "{{ nodes.rhel.ami_id }}"
     vpc_subnet_id: "{{ subnet_id }}"
-#    vpc_subnet_id: "{{ lookup('file', '{{ vpc_subnet_path }}' ) }}"
     wait: true
     instance_ids: "{{ rhel_instance_ids }}"
-#    instance_ids: "{{ lookup('file', '{{ vpc_rhel_ids_path }}' ) }}"
     state: absent
-  when: nodes.rhel.count > 0
 
 - name: Delete VPC route table
   ec2_vpc_route_table:
     region: "{{ region }}"
     vpc_id: "{{ vpc_id }}"
-#    vpc_id: "{{ lookup('file', '{{ vpc_id_path }}' ) }}"
     lookup: id
     route_table_id: "{{ route_id }}"
-#    route_table_id: "{{ lookup('file', '{{ vpc_route_path }}' ) }}"
     state: absent
 
 - name: Delete public subnet
@@ -149,7 +189,6 @@
     region: "{{ region }}"
     cidr: "10.0.2.0/24"
     vpc_id: "{{ vpc_id }}"
-#    vpc_id: "{{ lookup('file', '{{ vpc_id_path }}' ) }}"
     state: absent
 
 - name: Delete Windows security group
@@ -168,7 +207,6 @@
   ec2_vpc_igw:
     region: "{{ region }}"
     vpc_id: "{{ vpc_id }}"
-#    vpc_id: "{{ lookup('file', '{{ vpc_id_path }}' ) }}"
     state: absent
 
 - name: Delete VPC
@@ -183,5 +221,5 @@
     name: "dp-{{ workshop_prefix }}-key"
     region: "{{ region }}"
     state: absent
-    
+
 ...
