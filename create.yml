@@ -1,10 +1,4 @@
 ---
-- name: Display all variables/facts known for a host
-  hosts: local_target
-  tasks:
-    debug:
-      var: hostvars[local_target]
-
 - name: Deploy attack and defense hosts
   hosts: local_target
   roles:
