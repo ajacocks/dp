@@ -3,7 +3,9 @@
   hosts: local_target
   tasks:
   - debug:
-      var: environment
+      var: AWS_ACCESS_KEY_ID
+  - debug:
+      var: AWS_SECRET_ACCESS_KEY
 
 - name: Deploy attack and defense hosts
   hosts: local_target
