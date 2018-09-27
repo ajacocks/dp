@@ -15,6 +15,7 @@ execution:                        "local" # when not running from Tower, define 
 ################################################################################
 # aws                      |      deployment working dir 
 deploy_working_dir:               "{{ lookup('env','PWD') }}/.redhatgov"
+# deploy_working_dir: '{{ lookup(''env'',''PROOT_TMP_DIR'') }}/.redhatgov' for Tower
 # aws                      |      AWS API KEYS
 aws_access_key:                   ""
 aws_secret_key:                   ""
