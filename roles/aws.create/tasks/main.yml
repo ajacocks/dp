@@ -5,7 +5,7 @@
 #===============================================================================
 
 - debug:
-    var: hostvars[local_target]
+    var: hostvars[dp.tower.0.redhatgov.io]
 
 #---------------------------------------------------
 #  Ansible Hosts Creation
