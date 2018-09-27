@@ -3,7 +3,7 @@
   hosts: local_target
   tasks:
   - debug:
-      var: hostvars[dp.tower.0.redhatgov.io]
+      var: environment
 
 - name: Deploy attack and defense hosts
   hosts: local_target
