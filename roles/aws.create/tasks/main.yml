@@ -4,18 +4,6 @@
 #  Provisioning
 #===============================================================================
 
-- debug:
-    var: AWS_ACCESS_KEY
-
-- debug:
-    var: AWS_SECRET_KEY
-
-- debug:
-    var: AWS_ACCESS_KEY_ID
-
-- debug:
-    var: AWS_SECRET_ACCESS_KEY
-
 #---------------------------------------------------
 #  Ansible Hosts Creation
 #---------------------------------------------------
@@ -54,8 +42,8 @@
 - name: Create EC2 keypair
   ec2_key:
     name: "dp-{{ workshop_prefix }}-key"
-    aws_access_key: "{{ aws_access_key }}"
-    aws_secret_key: "{{ aws_secret_key }}"
+#    aws_access_key: "{{ aws_access_key }}"
+#    aws_secret_key: "{{ aws_secret_key }}"
     region: "{{ region }}"
     state: present
   register: ec2_key
