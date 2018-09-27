@@ -1,6 +1,7 @@
 ---
 - name: Display AWS access key
-  hosts: local_target
+  hosts: localhost
+  connection: local
   tasks:
     - debug:
         msg: "ACCESS_KEY_ID is {{ lookup('env','AWS_ACCESS_KEY_ID') }}"
@@ -8,12 +9,13 @@
         msg: "SECRET_ACCESS_KEY is {{ lookup('env','AWS_SECRET_ACCESS_KEY') }}"
 
 - name: Create EC2 key
-  hosts: local_target
+  hosts: localhost
+  connection: local
   tasks:
     - ec2_key:
         name: "dp-dp-key"
-        aws_access_key: "{{ lookup('env','AWS_ACCESS_KEY_ID') }}"
-        aws_secret_key: "{{ lookup('env','AWS_SECRET_ACCESS_KEY') }}"
+#        aws_access_key: "{{ lookup('env','AWS_ACCESS_KEY_ID') }}"
+#        aws_secret_key: "{{ lookup('env','AWS_SECRET_ACCESS_KEY') }}"
         region: "us-east-2"
         state: present
       register: ec2_key
