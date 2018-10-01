@@ -127,10 +127,6 @@
       ports: 22
       cidr_ip: 0.0.0.0/0
       rule_desc: "allow all on port 22 (SSH)"
-#    - proto: tcp
-#      ports: 8888
-#      cidr_ip: 0.0.0.0/0
-#      rule_desc: "allow all on port 8888 (wetty)"
     tags:
       username: "{{ local_user }}"
       workshop: "dp"
@@ -153,10 +149,6 @@
       ports: 3389
       cidr_ip: 0.0.0.0/0
       rule_desc: "allow all on UDP port 3389 (Remote Desktop)"
-#    - proto: "tcp"
-#      ports: 5985
-#      cidr_ip: 0.0.0.0/0
-#      rule_desc: "allow all on port 5985 (WinRM HTTP)"
     - proto: "tcp"
       ports: 5986
       cidr_ip: 0.0.0.0/0
@@ -312,5 +304,6 @@
 #    wait: yes
     state: present
   loop: "{{ ec2_win.instances }}"
+  ignore_errors: true
 
 ...
