@@ -282,6 +282,7 @@
 #    wait: yes
     state: present
   loop: "{{ ec2_rhel.instances }}"
+  ignore_errors: true
 
 #---------------------------------------------------
 #  Windows
