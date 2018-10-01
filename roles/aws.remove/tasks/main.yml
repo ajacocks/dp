@@ -152,7 +152,7 @@
     wait: true
     instance_ids: "{{ win_instance_ids }}"
     state: absent
-  when: nodes.win.instance_type is defined
+  when: win_instance_ids is defined
 
 - name: Remove existing RHEL DNS records
   route53:
@@ -176,7 +176,7 @@
     wait: true
     instance_ids: "{{ rhel_instance_ids }}"
     state: absent
-  when:: nodes.rhel.instance_type is defined
+  when: rhel_instance_ids is defined
 
 - name: Delete VPC route table
   ec2_vpc_route_table:
