@@ -139,6 +139,6 @@ Fill a few variables out in an inventory file: **AWS_KEY**, **AWS_SECRET**, **to
 
 #### Step 4: Run playbook
 ```
-ansible-playbook configure_tower.yml
+ansible-playbook configure_tower.yml --ask-vault
 ```
 
