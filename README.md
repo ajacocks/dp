@@ -23,6 +23,7 @@ vi inventory
 ```
 ##### Identify and update variables
 Fill a few variables out in an inventory file: **admin_password**, **pg_password**, **rabbitmq_password**
+
 *Example:*
 ```
 [tower]
