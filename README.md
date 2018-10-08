@@ -31,19 +31,19 @@ localhost ansible_connection=local
 [database]
 
 [all:vars]
-admin_password='**ansibleWS**'
+admin_password='<insert password>'
 
 pg_host=''
 pg_port=''
 
 pg_database='awx'
 pg_username='awx'
-pg_password='**ansibleWS**'
+pg_password='<insert password>'
 
 rabbitmq_port=5672
 rabbitmq_vhost=tower
 rabbitmq_username=tower
-rabbitmq_password='**ansibleWS**'
+rabbitmq_password='<insert password>'
 rabbitmq_cookie=cookiemonster
 
 # Needs to be true for fqdns and ip addresses
