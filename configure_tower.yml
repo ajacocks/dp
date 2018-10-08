@@ -1,0 +1,186 @@
+---
+- hosts: localhost
+  name: Configure Ansible Tower
+  connection: local
+  vars:
+    AWS_KEY: !vault |
+          $ANSIBLE_VAULT;1.1;AES256
+          00000000000000000000000000000000000000000000000000000000000000000000000000000000
+          00000000000000000000000000000000000000000000000000000000000000000000000000000000
+          00000000000000000000000000000000000000000000000000000000000000000000000000000000
+          00000000000000000000000000000000000000000000000000000000000000000000000000000000
+          00000000000000000000000000000000000000000000000000000000000000000000000000000000
+          0000000000
+    AWS_SECRET: !vault |
+          $ANSIBLE_VAULT;1.1;AES256
+          00000000000000000000000000000000000000000000000000000000000000000000000000000000
+          00000000000000000000000000000000000000000000000000000000000000000000000000000000
+          00000000000000000000000000000000000000000000000000000000000000000000000000000000
+          00000000000000000000000000000000000000000000000000000000000000000000000000000000
+          00000000000000000000000000000000000000000000000000000000000000000000000000000000
+          0000000000
+    tower_host: localhost
+    tower_user: admin
+    tower_pass: !vault |
+          $ANSIBLE_VAULT;1.1;AES256
+          00000000000000000000000000000000000000000000000000000000000000000000000000000000
+          00000000000000000000000000000000000000000000000000000000000000000000000000000000
+          00000000000000000000000000000000000000000000000000000000000000000000000000000000
+          00000000000000000000000000000000000000000000000000000000000000000000000000000000
+          00000000000000000000000000000000000000000000000000000000000000000000000000000000
+          0000000000
+    workshop_password: !vault |
+          $ANSIBLE_VAULT;1.1;AES256
+          00000000000000000000000000000000000000000000000000000000000000000000000000000000
+          00000000000000000000000000000000000000000000000000000000000000000000000000000000
+          00000000000000000000000000000000000000000000000000000000000000000000000000000000
+          00000000000000000000000000000000000000000000000000000000000000000000000000000000
+          00000000000000000000000000000000000000000000000000000000000000000000000000000000
+          0000000000
+    org: "DreamPort"
+    domain_name: redhatgov.io
+  tasks:
+    - name: Ensure Ansible Tower CLI is installed
+      package:
+        name: "{{ item }}"
+        state: present
+      become: yes
+      loop:
+        - python2-ansible-tower-cli
+    - name: Setup Tower CLI
+      shell: "tower-cli config {{ item }}"
+      loop:
+        - "host {{ tower_host }}"
+        - "username {{ tower_user }}"
+        - "password {{ tower_pass }}"
+      no_log: true
+      args:
+        chdir: "~/"
+        creates: ".tower_cli.cfg"
+    - name: Create tower organization
+      tower_organization:
+        name: "{{ org }}"
+        state: present
+    - name: Add SCM credential
+      tower_credential:
+        name: "Public GitHub"
+        organization: "{{ org }}"
+        state: present
+        kind: scm
+    - name: Configure Deployment Control project
+      tower_project:
+        name: "{{ org }} Deployment Control"
+        organization: "{{ org }}"
+        state: present
+        scm_type: git
+        scm_url: "https://github.com/ajacocks/dp.git"
+        scm_credential: "Public GitHub"
+        scm_branch: master
+        scm_clean: yes
+        scm_update_on_launch: yes
+    - name: Setup AWS credential
+      tower_credential:
+        name: "{{ org }} AWS Credential"
+        organization: "{{ org }}"
+        state: present
+        kind: aws
+        username: "{{ AWS_KEY }}"
+        password: "{{ AWS_SECRET }}"
+    - name: Get Credential ID
+      shell: 'tower-cli credential get -n "{{ org }} AWS Credential" | tail -2 | head -1 | sed "s/^ //g" | cut -d" " -f1'
+      register: credid
+    - name: Add inventory for Deployment Control
+      tower_inventory:
+        name: "{{ org }} Managed Inventory"
+        organization: "{{ org }}"
+        state: present
+    - name: Add inventory source as AWS
+      shell: 'tower-cli inventory_source create --name="{{ org }} AWS Source" --credential="{{ org }} AWS Credential" --source=ec2 --inventory="{{ org }} Managed Inventory" --overwrite=true --source-regions="us-east-1,us-east-2,us-west-1" --overwrite=true --overwrite-vars=true --update-on-launch=true --instance-filters="tag:Name=dp-*-rhel,tag:Name=dp-*-win"'
+    - name: Remove template to Create Instances (if it exists)
+      tower_job_template:
+        name: "{{ org }} - Create Instances"
+        job_type: run
+        project: "{{ org }} Deployment Control"
+        playbook: create.yml
+        state: absent
+    - name: Create template to Create Instances
+      tower_job_template:
+        name: "{{ org }} - Create Instances"
+        job_type: run
+        inventory: "{{ org }} Managed Inventory"
+        project: "{{ org }} Deployment Control"
+        playbook: create.yml
+        state: present
+    - name: Get Job Template ID
+      shell: 'tower-cli job_template get "{{ org }} - Create Instances" | tail -2 | head -1 | sed "s/^ //g" | cut -d" " -f1'
+      register: jobid
+    - name: Add AWS Credential to Job Template
+      uri:
+        url: "https://{{ tower_host }}/api/v2/job_templates/{{ jobid.stdout }}/extra_credentials/"
+        method: POST
+        user: "{{ tower_user }}"
+        password: "{{ tower_pass }}"
+        body: '{"name": "{{ org }} AWS Credential", "id": {{ credid.stdout }}, "credential_type": "cloud" }'
+        force_basic_auth: yes
+        body_format: json
+        validate_certs: no
+        status_code: 204
+    - name: Enable survery for job template
+      shell: 'tower-cli job_template modify --name="{{ org }} - Create Instances" --survey-enabled=true'
+    - name: Define Create Survey
+      uri:
+        url: "https://{{ tower_host }}/api/v2/job_templates/{{ jobid.stdout }}/survey_spec/"
+        method: POST
+        user: "{{ tower_user }}"
+        password: "{{ tower_pass }}"
+        body: '{%raw%}{ "spec": [ { "required": true, "min": null, "default": "0", "max": null, "question_description": "", "choices": "0\n1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12\n13\n14\n15\n16\n17\n18\n19\n20\n21\n22\n23\n24\n25", "variable": "rhel_count", "question_name": "Quantity of RHEL 7.5 Hosts to Deploy?", "type": "multiplechoice" }, { "required": true, "min": null, "default": "0", "max": null, "question_description": "", "choices": "0\n1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12\n13\n14\n15\n16\n17\n18\n19\n20\n21\n22\n23\n24\n25", "new_question": true, "variable": "win_count", "question_name": "Quantity of Windows Server 2016 hosts to deploy?", "type": "multiplechoice" }, { "required": true, "min": null, "default": "us-east-2", "max": null, "question_description": "","choices": "us-east-1\nus-east-2", "variable": "region", "question_name": "Region", "type": "multiplechoice" }, { "required": true, "min": null, "default": "dp1", "max": null, "question_description": "", "choices": "dp1\ndp2\ndp3\ndp4", "variable": "workshop_prefix", "question_name": "Training Room", "type": "multiplechoice" } ], "description": "", "name": "" }{%endraw%}'
+        force_basic_auth: yes
+        body_format: json
+        validate_certs: no
+        status_code: 200
+    - name: Add extra variables
+      shell: 'tower-cli job_template modify --name="{{ org }} - Create Instances" -e  "{deploy_working_dir: /tmp/{{ org }},winrm_path: /tmp/{{ org }}/winrm,ssh_key_path: /tmp/{{ org }}/key,workshop_password: {{ workshop_password }},local_user: ec2-user,domain_name: {{ domain_name }}}"'
+    - name: Remove template to Remove Instances (if it exists)
+      tower_job_template:
+        name: "{{ org }} - Remove Instances"
+        job_type: run
+        project: "{{ org }} Deployment Control"
+        playbook: remove.yml
+        state: absent
+    - name: Create template to Remove Instances
+      tower_job_template:
+        name: "{{ org }} - Remove Instances"
+        job_type: run
+        inventory: "{{ org }} Managed Inventory"
+        project: "{{ org }} Deployment Control"
+        playbook: remove.yml
+        state: present
+    - name: Get Job Template ID
+      shell: 'tower-cli job_template get "{{ org }} - Remove Instances" | tail -2 | head -1 | sed "s/^ //g" | cut -d" " -f1'
+      register: jobid2
+    - name: Add AWS Credential to Job Template
+      uri:
+        url: "https://{{ tower_host }}/api/v2/job_templates/{{ jobid2.stdout }}/extra_credentials/"
+        method: POST
+        user: "{{ tower_user }}"
+        password: "{{ tower_pass }}"
+        body: '{"name": "{{ org }} AWS Credential", "id": {{ credid.stdout }}, "credential_type": "cloud" }'
+        force_basic_auth: yes
+        body_format: json
+        validate_certs: no
+        status_code: 204
+    - name: Enable survery for job template
+      shell: 'tower-cli job_template modify --name="{{ org }} - Remove Instances" --survey-enabled=true'
+    - name: Define Remove Survey
+      uri:
+        url: "https://{{ tower_host }}/api/v2/job_templates/{{ jobid2.stdout }}/survey_spec/"
+        method: POST
+        user: "{{ tower_user }}"
+        password: "{{ tower_pass }}"
+        body: '{%raw%}{ "spec": [ { "required": true, "min": null, "default": "us-east-2", "max": null, "question_description": "","choices": "us-east-1\nus-east-2", "variable": "region", "question_name": "Region", "type": "multiplechoice" }, { "required": true, "min": null, "default": "dp1", "max": null, "question_description": "", "choices": "dp1\ndp2\ndp3\ndp4", "variable": "workshop_prefix", "question_name": "Training Room", "type": "multiplechoice" } ], "description": "", "name": "" }{%endraw%}'
+        force_basic_auth: yes
+        body_format: json
+        validate_certs: no
+        status_code: 200
+    - name: Add extra variables
+      shell: 'tower-cli job_template modify --name="{{ org }} - Remove Instances" -e  "{deploy_working_dir: /tmp/{{ org }},winrm_path: /tmp/{{ org }}/winrm,ssh_key_path: /tmp/{{ org }}/key,workshop_password: {{ workshop_password }},local_user: ec2-user,domain_name: {{ domain_name }}}"'
