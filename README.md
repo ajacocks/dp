@@ -1,27 +1,27 @@
-# Installing Ansible Tower
+## Installing Ansible Tower
 
-## Step 1: Change Directory
+### Step 1: Change Directory
 ```
 cd /tmp
 ```
 
-## Step 2: Download Red Hat Ansible Tower
+### Step 2: Download Red Hat Ansible Tower
 Download the latest Ansible Tower package
 ```
 curl -O https://releases.ansible.com/ansible-tower/setup/ansible-tower-setup-latest.tar.gz
 ```
 
-## Step 3: Untar and unzip the package file
+### Step 3: Untar and unzip the package file
 ```
 tar xvfz /tmp/ansible-tower-setup-latest.tar.gz
 ```
 
-## Step 4: Edit Inventory file
+### Step 4: Edit Inventory file
 ```
 cd /tmp/ansible-tower-setup-*/
 vi inventory
 ```
-### Identify and update variables
+#### Identify and update variables
 Fill a few variables out in an inventory file: admin_password, pg_password, rabbitmq_password
 ```
 [tower]
@@ -49,7 +49,7 @@ rabbitmq_cookie=cookiemonster
 rabbitmq_use_long_name=false
 ```
 
-## Step 5: Run setup
+### Step 5: Run setup
 Run the Ansible Tower setup script
 ```
 sudo ./setup.sh
