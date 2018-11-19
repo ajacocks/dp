@@ -68,19 +68,19 @@ cd /tmp/dp
 ```
 #### Step 2: Create vaulted variables
 ```
-ansible-vault encrypt_sting <ansible tower password>
+ansible-vault encrypt_string <ansible tower password>
 New Vault password: <set vault password>
 Confirm New Vault password: <set vault password>
 
-ansible-vault encrypt_sting <aws key>
+ansible-vault encrypt_string <aws key>
 New Vault password: <set vault password - same as above>
 Confirm New Vault password: <confirm vault password>
 
-ansible-vault encrypt_sting <aws secret>
+ansible-vault encrypt_string <aws secret>
 New Vault password: <set vault password - same as above>
 Confirm New Vault password: <confirm vault password>
 
-ansible-vault encrypt_sting <default workshop password>
+ansible-vault encrypt_string <default workshop password>
 New Vault password: <set vault password - same as above>
 Confirm New Vault password: <confirm vault password>
 ```
