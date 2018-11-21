@@ -1,0 +1,4 @@
+---
+# vars file for tower.create
+tower_bundle_file: 'ansible-tower-setup-latest.tar.gz'
+tower_bundle_url: "https://releases.ansible.com/ansible-tower/setup/{{ tower_bundle_file }}"

@@ -1,6 +1,37 @@
 ---
 # tasks file for roles/aws.remove
 
+#---------------------------------------------------
+#  AMI Choice
+#---------------------------------------------------
+- name: Define AMIs to use, based on region, for us-east-1
+  set_fact:
+    nodes:
+      tower_rhel:
+        ami_id: "ami-0394fe9914b475c53" # RHEL-7.5_HVM-20180813-x86_64-0-Hourly2-GP2
+        instance_type: "t2.large"
+      rhel:
+        ami_id: "ami-0394fe9914b475c53" # RHEL-7.5_HVM-20180813-x86_64-0-Hourly2-GP2
+        instance_type: "t2.small"
+      win:
+        ami_id: "ami-01945499792201081" # Windows_Server-2016-English-Full-Base-2018.09.15
+        instance_type: "t2.large"
+  when: region == "us-east-1"
+
+- name: Define AMIs to use, based on region, for us-east-2
+  set_fact:
+    nodes:
+      tower_rhel:
+        ami_id: "ami-04268981d7c33264d" # RHEL-7.5_HVM-20180813-x86_64-0-Access2-GP2
+        instance_type: "t2.large"
+      rhel:
+        ami_id: "ami-04268981d7c33264d" # RHEL-7.5_HVM-20180813-x86_64-0-Access2-GP2
+        instance_type: "t2.small"
+      win:
+        ami_id: "ami-0ca3e3965ada31684" # Windows_Server-2016-English-Full-Base-2018.09.15
+        instance_type: "t2.large"
+  when: region == "us-east-2"
+
 #===============================================================================
 #  Search and record IDs
 #===============================================================================
@@ -9,6 +40,7 @@
     route_id: ""
     subnet_id: ""
     vpc_id: ""
+    tower_rhel_instance_ids: []
     rhel_instance_ids: []
     rhel_group_id: ""
     win_instance_ids: []
@@ -28,6 +60,21 @@
   set_fact:
     rhel_instance_ids: "{{ rhel_instance_ids }} + [ '{{ item.instance_id }}' ]"
   with_items: "{{ ec2_rhel.instances }}"
+
+- name: lookup running RHEL Tower instances
+  ec2_instance_facts:
+    region: "{{ region }}"
+    filters:
+      tag:tower_rhel: "dp-{{ workshop_prefix }}"
+  register: ec2_tower_rhel
+
+- debug:
+    var: ec2_tower_rhel
+
+- name: Append RHEL Tower instances to list`
+  set_fact:
+    tower_rhel_instance_ids: "{{ tower_rhel_instance_ids }} + [ '{{ item.instance_id }}' ]"
+  with_items: "{{ ec2_tower_rhel.instances }}"
 
 - name: lookup running Windows instances
   ec2_instance_facts:
@@ -126,6 +173,18 @@
   loop_control:
     index_var: dns_idx
 
+- name: Lookup existing RHEL Tower DNS records
+  route53:
+    state: get
+    zone: "{{ domain_name }}"
+    record: "tower.{{ dns_idx }}.{{ workshop_prefix }}.{{ domain_name }}"
+    type: CNAME
+  register: tower_rhel_rec
+  loop: "{{ tower_rhel_instance_ids }}"
+  loop_control:
+    index_var: dns_idx
+
+
 #===============================================================================
 #  Deprovisioning
 #===============================================================================
@@ -164,6 +223,34 @@
     value: "{{ item.set.value }}"
   when: item.set.record is defined
   with_items: "{{ rhel_rec.results }}"
+
+- name: Remove existing RHEL Tower DNS records
+  route53:
+    state: absent
+    zone: "{{ domain_name }}"
+    record: "{{ item.set.record }}"
+    ttl: "{{ item.set.ttl }}"
+    type: "{{ item.set.type }}"
+    value: "{{ item.set.value }}"
+  when: item.set.record is defined
+  with_items: "{{ tower_rhel_rec.results }}"
+
+- debug:
+    var: nodes
+
+- name: Remove RHEL Tower instances
+  ec2:
+    key_name: "dp-{{ workshop_prefix }}-key"
+    group: "dp-{{ workshop_prefix }}-rhel-sg"
+    region: "{{ region }}"
+    instance_type: "{{ nodes.tower_rhel.instance_type }}"
+    image: "{{ nodes.tower_rhel.ami_id }}"
+    vpc_subnet_id: "{{ subnet_id }}"
+    wait: true
+    instance_ids: "{{ tower_rhel_instance_ids }}"
+    state: absent
+  when: tower_rhel_instance_ids|length > 0
+    #  when: false
 
 - name: Remove RHEL instances
   ec2:

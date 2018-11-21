@@ -1,0 +1,99 @@
+---
+# tasks file for tower.create
+
+#===============================================================================
+#  Prep
+#===============================================================================
+
+- name: Determine name of Tower license file
+  set_fact:
+    tower_license_file: "{{ tower_license | basename }}"
+
+- name: Create a temporary working directory
+  tempfile:
+    state: directory
+  register: workdir
+
+- name: Transfer Tower license
+  copy:
+    src: "{{ tower_license }}"
+    dest: "{{ workdir.path }}/{{ tower_license_file }}"
+
+- name: Download Ansible Tower bundle
+  get_url:
+    url: "{{ tower_bundle_url }}"
+    dest: "{{ workdir.path }}/{{ tower_bundle_file }}"
+    mode: 0444
+
+- name: Extract Tower bundle
+  unarchive:
+    src: "{{ workdir.path }}/{{ tower_bundle_file }}"
+    dest: "{{ workdir.path }}"
+    remote_src: true
+
+- name: Locate extracted Tower files
+  find:
+    paths: "{{ workdir.path }}"
+    file_type: "directory"
+    patterns: "ansible-tower-setup-*"
+  register: tower
+
+- debug:
+    var: tower.files[0].path
+
+#===============================================================================
+#  Install
+#===============================================================================
+
+- name: Configure setup manifest - rabbitmq
+  become: yes
+  replace:
+    path: "{{ tower.files[0].path }}/inventory"
+    regexp: '^rabbitmq_password=.*$'
+    replace: "rabbitmq_password='{{ rabbit_password }}'"
+    backup: yes
+
+- name: Configure setup manifest
+  become: yes
+  replace:
+    path: "{{ tower.files[0].path }}/inventory"
+    regexp: "password=''$"
+    replace: "password='{{ workshop_password }}'"
+    backup: yes
+
+- debug:
+    msg: "Launching Ansible Tower setup - please be patient, as this task often takes over 15 minutes."
+
+- name: Install Ansible Tower
+  become: yes
+  command: "{{ tower.files[0].path }}/setup.sh"
+  async: 1800
+  poll: 30
+
+- name: Add EULA property to license key, if it doesn't exist
+  lineinfile:
+    path: "{{ workdir.path }}/{{ tower_license_file }}"
+    insertafter: "^.*license_key.*"
+    regex: "^.*eula_accepted.*$"
+    line: "    \"eula_accepted.\": true, \r"
+
+- name: Install Ansible Tower License Key
+  uri:
+    url: "https://localhost/api/v1/config/"
+    method: "POST"
+    body: " {{ lookup('file','{{ workdir.path }}/{{ tower_license_file }}') }}"
+    force_basic_auth: yes
+    user: "admin"
+    password: "{{ workshop_password }}"
+    headers:
+      Content-Type: "application/json"
+    validate_certs: no
+  register: tower_key
+
+#curl -k https://localhost/api/v1/config/ \
+#     -H 'Content-Type: application/json' \
+#     -X POST \
+#     --data @license \
+#     --user admin:ansibleWS
+
+...

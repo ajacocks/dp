@@ -1,0 +1,7 @@
+---
+- name: Deploy tower on hosts
+  hosts: tower_rhel_nodes
+  become: true
+  roles:
+  - { role: tower.create, tags: ["create"] }
+...
