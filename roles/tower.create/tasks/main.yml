@@ -6,12 +6,6 @@
 #===============================================================================
 
 - name: Check to see if Tower is already installed
-  command: rpm -q ansible-tower
-  ignore_errors: yes
-  register: tower_package
-  changed_when: false
-
-- name: Check to see if Tower is already installed
   yum:
     list: ansible-tower
   register: yum_list
