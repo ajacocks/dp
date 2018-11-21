@@ -51,6 +51,7 @@ letsencrypt_email:                "someone@redhat.com"
 letsencrypt:                      false
 #-------------------------------------------------------------------------------
 # wetty                    |      password
+# NOTE: Windows 2016 requires a min of 8 chars and 3 char classes
 workshop_password:                ""
 #-------------------------------------------------------------------------------
 
