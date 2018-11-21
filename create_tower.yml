@@ -1,7 +1,35 @@
 ---
+#===============================================================================
+# prerequisites
+#===============================================================================
+- name: Prepare Tower license key
+  hosts: localhost
+  tasks:
+  - name: Determine name of Tower license file
+    set_fact:
+      tower_license_file: "{{ tower_license | basename }}"
+
+  - name: Copy license key to temp directory
+    copy:
+      src: "{{ tower_license }}"
+      dest: "{{ deploy_working_dir }}/{{ tower_license_file }}"
+
+  - name: Add EULA property to license key, if it doesn't exist
+    lineinfile:
+      path: "{{ deploy_working_dir }}/{{ tower_license_file }}"
+      insertafter: "^.*license_key.*"
+      regex: "^.*eula_accepted.*$"
+      line: "    \"eula_accepted\": true, \r"
+
+#===============================================================================
+# installation
+#===============================================================================
 - name: Deploy tower on hosts
   hosts: tower_rhel_nodes
   become: true
+  vars:
+    tower_license_file: "{{ tower_license | basename }}"
   roles:
   - { role: tower.create, tags: ["create"] }
+
 ...
