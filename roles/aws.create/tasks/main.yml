@@ -17,7 +17,7 @@
         ami_id: "ami-0394fe9914b475c53" # RHEL-7.5_HVM-20180813-x86_64-0-Hourly2-GP2
         instance_type: "t2.small"
       win:
-        ami_id: "ami-07a016b7d5b6c40d4" # Windows_Server-2016-English-Full-Base-2019.04.10
+        ami_id: "ami-06bee8e1000e44ca4" # Windows_Server-2016-English-Full-Base-2019.05.15
         instance_type: "t2.large"
   when: region == "us-east-1"
 
@@ -31,7 +31,7 @@
         ami_id: "ami-04268981d7c33264d" # RHEL-7.5_HVM-20180813-x86_64-0-Access2-GP2
         instance_type: "t2.small"
       win:
-        ami_id: "ami-0fcd1e0bdff03687d" # Windows_Server-2016-English-Full-Base-2019.04.10
+        ami_id: "ami-0838ffb5aea8de870" # Windows_Server-2016-English-Full-Base-2019.05.15
         instance_type: "t2.large"
   when: region == "us-east-2"
 
